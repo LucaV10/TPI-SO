@@ -33,4 +33,4 @@ for p in NUEVO:
 print("\nAsignando procesos a memoria...\n")
 for proceso in NUEVO[:]:  # usar copia para evitar problemas al modificar la lista
     if gestor_memoria_bestfit(proceso, Memoria, LISTO):
-        NUEVO.remove(proceso)
+        NUEVO.remove(proceso) #Si el proceso se asigno correctamente se elimina de NUEVO
