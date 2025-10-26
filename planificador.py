@@ -22,4 +22,6 @@ def gestor_memoria_bestfit(proceso, memoria, lista_listos):
         return True
 
     print(f" No hay particion disponible para el proceso {proceso.id} ({proceso.tamano}K)")
+    
     return False
+    
