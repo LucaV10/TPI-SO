@@ -7,7 +7,7 @@ def crear_memoria():
             'NroParticion': i + 1,
             'TamanoParticion': tamanos[i],
             'FragmentacionInterna': 0,
-            'ProcesoAsignado': 0,
+            'ProcesoAsignado': None,
             'Disponible': True
         }
 
