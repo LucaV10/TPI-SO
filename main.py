@@ -9,6 +9,8 @@ from planificador import gestor_memoria_bestfit
 # Listas de estados
 NUEVO, LISTO, EJECUCION, LISTOSUSPENDIDO, TERMINADO = [], [], [], [], []
 GRAD_MULTIPROG = 0
+#Definimos un reloj para ir mostrando los avances.
+clk = 0
 
 #Pavadas decorativas para la consola
 os.system('cls')
@@ -16,8 +18,6 @@ print("Iniciando simulacion...\n")
 time.sleep(1)
 os.system('cls')
 
-#Definimos un reloj para ir mostrando los avances.
-clk = 0
 print(f"Tiempo actual del sistema: {clk}\n")
 
 # Crear memoria
@@ -56,7 +56,6 @@ try:
         print(f"Tiempo actual del sistema: {clk}\n")
         
         # Asignar procesos con Best-Fit
-        proceso = NUEVO[0]
         print("Asignando procesos a memoria...\n")
         # Iterar sobre una COPIA de NUEVO (con [:]), porque la vamos a modificar
         for proceso in NUEVO[:]: # Va a funcionar si es que la cola de listo no esta ordenada por tiempo de arribo
@@ -76,8 +75,8 @@ try:
                 break
 
         proceso_elegido = None
-        # Planificación SRTF
         
+        # Planificación SRTF
         if EJECUCION:
             tiempo_restante_ejecucion = EJECUCION[0].tiempo_restante
         else:
@@ -122,9 +121,6 @@ try:
 
         if EJECUCION:
             print("\nProcesos en estado EJECUCION:")
-            # Se reduce el tiempo restante del proceso en ejecucion
-            
-            EJECUCION[0].tiempo_restante -= 1
             for proceso in EJECUCION:
                 print(proceso)
 
@@ -136,6 +132,9 @@ try:
         if EJECUCION:
             # Verificar si el proceso en ejecucion ha terminado
             if EJECUCION[0].tiempo_restante == 0:
+
+                #CONTROL DE SRTF LISTO Y SUSPENDIDO
+
                 pausa = True
                 GRAD_MULTIPROG -= 1
                 proceso_terminado = EJECUCION.pop(0)
@@ -146,10 +145,11 @@ try:
                         particion['Disponible']= True
                         particion['ProcesoAsignado'] = None
                         particion['FragmentacionInterna'] = 0
-
-                proceso_terminado.particion_asignada = 0
+                proceso_terminado.particion_asignada = None
                 TERMINADO.append(proceso_terminado)
                 print(f"\n||El proceso {proceso_terminado.id} ha terminado su ejecucion||")
+            else:
+                EJECUCION[0].tiempo_restante -= 1
 
         if pausa:
             input("\nPresione Enter para continuar...")
@@ -162,5 +162,4 @@ try:
     
 except KeyboardInterrupt:
     print("\nSimulacion terminada por el usuario.")
-
 
