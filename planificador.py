@@ -18,10 +18,10 @@ def gestor_memoria_bestfit(proceso, memoria, lista_listos):
         proceso.particion_asignada = particion_elegida['NroParticion']
         proceso.estado = "Listo"
         lista_listos.append(proceso)
-        print(f" Proceso {proceso.id} asignado a particion {particion_elegida['NroParticion']} ({particion_elegida['TamanoParticion']}K)")
+        print(f"|| Proceso {proceso.id} asignado a particion {particion_elegida['NroParticion']} ({particion_elegida['TamanoParticion']}K) ||", end='')
         return True
 
-    print(f" No hay particion disponible para el proceso {proceso.id} ({proceso.tamano}K)")
+    print(f"|| No hay particion disponible para el proceso {proceso.id} ({proceso.tamano}K) pasa a Listo y Suspendido ||", end='')
     
     return False
     
