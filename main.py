@@ -7,7 +7,6 @@ from memoria import crear_memoria
 from planificador import gestor_memoria_bestfit
 from consola import mostrar_estado_procesos, mostrar_memoria, cargar_procesos_desde_archivo
 
-
 # Listas de estados
 NUEVO, LISTO, EJECUCION, LISTOSUSPENDIDO, TERMINADO = [], [], [], [], []
 GRAD_MULTIPROG = 0
@@ -28,7 +27,17 @@ print(f"------| Tiempo actual del sistema |------\n"
 Memoria = crear_memoria()
 mostrar_memoria(Memoria)
 
-ruta_csv = os.path.dirname(__file__) + "\\data\\Procesos.csv" #Solo sirve para cargar la ruta del archivo de ejemplo
+print('')
+print('')
+
+print("------------------------------------------------------------")
+print(" Archivo de procesos esperado en la ruta:")
+print("    ./data/")
+print(" Formato: Id, Tamanio, TiempoArribo, TiempoIrrupcion")
+print("------------------------------------------------------------\n")
+
+
+ruta_csv = os.path.dirname(__file__) + "\\data\\Procesos_SRTF.csv" #Solo sirve para cargar la ruta del archivo de ejemplo
 
 # Cargar procesos desde CSV
 cargar_procesos_desde_archivo(ruta_csv, 'Procesos.csv', NUEVO)
@@ -98,18 +107,20 @@ try:
 
         if proceso_elegido:
             pausa = True
-            if EJECUCION:
-                print(f"||El proceso {proceso_elegido.id} interrumpio el proceso {EJECUCION[0].id}||")
-                proceso_elegido.estado = "Ejecucion"
+            # Si hay un proceso ejecutando y el elegido tiene menor tiempo restante, interrumpe
+            if EJECUCION and proceso_elegido.tiempo_restante < EJECUCION[0].tiempo_restante:
+                print(f"|| El proceso {proceso_elegido.id} interrumpe a {EJECUCION[0].id} (SRTF) ||")
                 EJECUCION[0].estado = "Listo"
                 LISTO.append(EJECUCION.pop(0))
                 EJECUCION.append(proceso_elegido)
                 LISTO.remove(proceso_elegido)
-            else:
+                LISTO.sort(key=lambda p: p.tiempo_restante)  # Mantener ordenado por tiempo restante
+            elif not EJECUCION:
+                # Si el CPU está libre, simplemente lo pone a ejecutar
                 proceso_elegido.estado = "Ejecucion"
                 EJECUCION.append(proceso_elegido)
                 LISTO.remove(proceso_elegido)
-        
+
         if EJECUCION:
             EJECUCION[0].tiempo_restante -= 1
 
@@ -142,6 +153,28 @@ try:
         clk += 1
         time.sleep(1.25)
         os.system('cls')
+        
+        if not NUEVO and not LISTO and not LISTOSUSPENDIDO and not EJECUCION:
+            ejecutando = False
+            print("\n\n=== Simulación finalizada ===")
+            print(f"Tiempo total de simulación: {clk} unidades de tiempo\n")
+            break
     
+    # --- Mostrar estadísticas finales ---
+    print("\n--- ESTADÍSTICAS FINALES ---")
+    for p in TERMINADO:
+        p.tiempo_finalizacion = clk
+        p.tiempo_retorno = p.tiempo_finalizacion - p.ta
+        p.tiempo_espera = p.tiempo_retorno - p.ti
+        print(f"{p.id}: Retorno={p.tiempo_retorno}, Espera={p.tiempo_espera}")
+
+    if TERMINADO:
+        prom_retorno = sum(p.tiempo_retorno for p in TERMINADO) / len(TERMINADO)
+        prom_espera = sum(p.tiempo_espera for p in TERMINADO) / len(TERMINADO)
+        rendimiento = len(TERMINADO) / clk if clk > 0 else 0
+        print(f"\nPromedio Retorno: {prom_retorno:.2f}")
+        print(f"Promedio Espera: {prom_espera:.2f}")
+        print(f"Rendimiento del sistema: {rendimiento:.3f} procesos/unidad de tiempo\n")        
+            
 except KeyboardInterrupt:
     print("\nSimulacion terminada por el usuario.")

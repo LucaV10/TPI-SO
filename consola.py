@@ -26,6 +26,7 @@ def mostrar_estado_procesos (Memoria, NUEVO, LISTO, LISTOSUSPENDIDO, EJECUCION, 
             print(proceso)
 
     if LISTO:
+        LISTO.sort(key=lambda p: p.tiempo_restante)
         print("\nProcesos en estado LISTO:")
         for proceso in LISTO:
             print(proceso)

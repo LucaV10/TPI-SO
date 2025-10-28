@@ -1,5 +1,6 @@
 from procesos import Proceso
 
+
 def gestor_memoria_bestfit(proceso, memoria, lista_listos):
     particion_elegida = None
     mejor_ajuste = float('inf')
@@ -16,12 +17,17 @@ def gestor_memoria_bestfit(proceso, memoria, lista_listos):
         particion_elegida['ProcesoAsignado'] = proceso.id
         particion_elegida['FragmentacionInterna'] = mejor_ajuste
         proceso.particion_asignada = particion_elegida['NroParticion']
-        proceso.estado = "Listo"
-        lista_listos.append(proceso)
+        insertar_en_listo_srtf(proceso, lista_listos)
         print(f"|| Proceso {proceso.id} asignado a particion {particion_elegida['NroParticion']} ({particion_elegida['TamanoParticion']}K) ||", end='')
         return True
 
     print(f"|| No hay particion disponible para el proceso {proceso.id} ({proceso.tamano}K) pasa a Listo y Suspendido ||", end='')
     
     return False
+    
+def insertar_en_listo_srtf(proceso, lista_listos):
+    #Carga la lista de listos en funcion al algoritmo SRTF
+    proceso.estado = "Listo"
+    lista_listos.append(proceso)
+    lista_listos.sort(key=lambda p: p.tiempo_restante)
     
