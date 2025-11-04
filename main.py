@@ -2,6 +2,8 @@ import csv
 import os
 import sys
 import time
+import tkinter as tk
+
 from procesos import Proceso
 from memoria import crear_memoria
 from planificador import gestor_memoria_bestfit
