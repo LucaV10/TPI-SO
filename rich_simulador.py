@@ -54,7 +54,7 @@ def tabla_procesos(lista, titulo, color="white"):
         return t
 
     for p in lista:
-        # Detecta los nombres de atributos aunque sean distintos
+        # getattr sirve para que funcione con distintos nombres de atributos
         pid = getattr(p, "id", getattr(p, "nombre", getattr(p, "ID", "-")))
         tam = getattr(p, "tamano", getattr(p, "tamaño", getattr(p, "size", "-")))
         arr = getattr(p, "ta", getattr(p, "arribo", getattr(p, "tiempo_arribo", "-")))
@@ -87,7 +87,7 @@ def mostrar_estado(clk, memoria, nuevo, listo, susp, ejec, term):
         )
     )
 
-    # Tablas principales (ordenadas verticalmente)
+    # Tablas principales
     console.print(tabla_memoria(memoria))
     console.print(tabla_procesos(listo, "Listo", "bright_blue"))
     console.print(tabla_procesos(susp, "Listo/Suspendido", "magenta"))
