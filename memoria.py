@@ -20,3 +20,8 @@ def crear_memoria():
     return memoria
 
 
+def tamano_valido(proceso, particiones): #Funcion para verificar si un proceso puede en algun instante de tiempo entrar a memoria, es decir que si alguna particion tiene mayor tamaño que el
+    for part in particiones: 
+        if part["TamanoParticion"] >= getattr(proceso, "tamano", getattr(proceso, "tamaño", 0)):
+            return True
+    return False

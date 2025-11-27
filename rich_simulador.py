@@ -2,7 +2,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
-from memoria import crear_memoria
+from memoria import crear_memoria, tamano_valido
 from planificador import gestor_memoria_bestfit
 from consola import cargar_procesos_desde_archivo
 import os
@@ -12,9 +12,7 @@ from tkinter import filedialog
 console = Console()
 
 
-
 # Tablas y presentación de datos
-
 
 def tabla_memoria(memoria):
     """Crea la tabla con las particiones de memoria."""
@@ -106,8 +104,10 @@ def simulacion_manual(ruta_csv):
     cargar_procesos_desde_archivo(ruta_csv, None, NUEVO)
 
     if not NUEVO:
-        console.print(f"[red bold]No se cargó ningún proceso.[/red bold] "
-                      f"Verificá el archivo CSV:\n[white]{ruta_csv}[/white]\n")
+        console.print(
+            f"[red bold]No se cargó ningún proceso.[/red bold] "
+            f"Verificá el archivo CSV:\n[white]{ruta_csv}[/white]\n"
+        )
         return
 
     console.print(Panel(
@@ -141,14 +141,17 @@ def simulacion_manual(ruta_csv):
             reactivado = False
             if SUSP:
                 candidato = min(SUSP, key=lambda p: getattr(p, "tiempo_restante", 9999))
+                # Ya llegó antes, así que no hace falta verificar ta <= clk
                 if gestor_memoria_bestfit(candidato, Memoria, LISTO):
                     SUSP.remove(candidato)
                     reactivado = True
+                    # GRADO_MULTIPROG no cambia: estaba contado en SUSP y pasa a LISTO
 
             # Si no hay suspendidos que entren, se revisa la cola de nuevos
             if not reactivado and NUEVO:
                 for p in NUEVO[:]:
                     if GRADO_MULTIPROG < 5 and getattr(p, "ta", 0) <= clk:
+                        # p ya fue filtrado por tamano_valido en la admisión normal
                         if gestor_memoria_bestfit(p, Memoria, LISTO):
                             NUEVO.remove(p)
                             GRADO_MULTIPROG += 1
@@ -163,8 +166,8 @@ def simulacion_manual(ruta_csv):
                 menor_restante = getattr(p, "tiempo_restante", 9999)
 
         if elegido:
+            # Caso 1: hay proceso ejecutando y el elegido lo interrumpe
             if EJEC and getattr(elegido, "tiempo_restante", 9999) < getattr(EJEC[0], "tiempo_restante", 9999):
-                # El nuevo proceso tiene menor tiempo de irrupción restante: se produce cambio de contexto
                 proceso_saliente = getattr(EJEC[0], "id", getattr(EJEC[0], "nombre", "?"))
                 proceso_entrante = getattr(elegido, "id", getattr(elegido, "nombre", "?"))
                 console.print(
@@ -173,29 +176,15 @@ def simulacion_manual(ruta_csv):
                     f"[green]{proceso_entrante}[/green] (menor tiempo restante)"
                 )
 
-                # Guardar el proceso actual en la cola de Listos
                 EJEC[0].estado = "Listo"
                 LISTO.append(EJEC.pop(0))
                 LISTO.sort(key=lambda q: getattr(q, "tiempo_restante", 9999))
 
-                # El proceso entrante pasa a ejecución
                 elegido.estado = "Ejecución"
                 EJEC.append(elegido)
                 LISTO.remove(elegido)
 
-            elif not EJEC:
-                # Si no hay proceso en ejecución, se toma el primero de la cola
-                elegido.estado = "Ejecución"
-                EJEC.append(elegido)
-                LISTO.remove(elegido)
-
-            if EJEC and getattr(elegido, "tiempo_restante", 9999) < getattr(EJEC[0], "tiempo_restante", 9999):
-                EJEC[0].estado = "Listo"
-                LISTO.append(EJEC.pop(0))
-                LISTO.sort(key=lambda q: getattr(q, "tiempo_restante", 9999))
-                elegido.estado = "Ejecución"
-                EJEC.append(elegido)
-                LISTO.remove(elegido)
+            # Caso 2: CPU libre
             elif not EJEC:
                 elegido.estado = "Ejecución"
                 EJEC.append(elegido)
@@ -207,16 +196,33 @@ def simulacion_manual(ruta_csv):
 
         # 4) Admisión de nuevos procesos
         for p in NUEVO[:]:
+
+            # 4.1 — Primero: verificar si el proceso puede entrar alguna vez
+            if not tamano_valido(p, Memoria):
+                p.estado = "Descartado"
+                console.print(
+                    f"[red]El proceso {p.id} se descarta: excede el tamaño de todas las particiones[/red]"
+                )
+                NUEVO.remove(p)
+                continue
+
+            # 4.2 — Si el tamaño es válido, sigue el flujo normal
             if GRADO_MULTIPROG < 5 and getattr(p, "ta", 0) <= clk:
+
+                # Intentar cargarlo por Best-Fit
                 if gestor_memoria_bestfit(p, Memoria, LISTO):
                     NUEVO.remove(p)
                     GRADO_MULTIPROG += 1
+
                 else:
+                    # No hay partición libre, pero sí cabe → suspendido
                     p.estado = "Listo y suspendido"
                     SUSP.append(p)
                     NUEVO.remove(p)
                     GRADO_MULTIPROG += 1
+
             elif GRADO_MULTIPROG >= 5:
+                # No se admiten más procesos al sistema
                 break
 
         clk += 1
@@ -230,9 +236,7 @@ def simulacion_manual(ruta_csv):
 
         input("\nPresione [Enter] para avanzar un paso...")
 
-    
     # Estadísticas finales
-    
 
     console.rule("[bold yellow]Estadísticas finales[/bold yellow]")
     total_tiempo = clk
@@ -247,8 +251,10 @@ def simulacion_manual(ruta_csv):
         p.tiempo_espera = p.tiempo_retorno - getattr(p, "ti", 0)
         prom_ret += p.tiempo_retorno
         prom_esp += p.tiempo_espera
-        console.print(f"[cyan]{getattr(p, 'id', getattr(p, 'nombre', '?'))}[/cyan] "
-                      f"→ Retorno={p.tiempo_retorno}, Espera={p.tiempo_espera}")
+        console.print(
+            f"[cyan]{getattr(p, 'id', getattr(p, 'nombre', '?'))}[/cyan] "
+            f"→ Retorno={p.tiempo_retorno}, Espera={p.tiempo_espera}"
+        )
 
     prom_ret /= len(TERM)
     prom_esp /= len(TERM)
@@ -261,9 +267,7 @@ def simulacion_manual(ruta_csv):
     console.print("\n[bold green]Fin de la simulación manual[/bold green]\n")
 
 
-
 # Selector de archivo CSV (interfaz)
-
 
 def seleccionar_csv():
     """Abre una ventana del explorador de archivos para seleccionar el CSV."""
@@ -277,9 +281,7 @@ def seleccionar_csv():
     return ruta
 
 
-
 # Ejecución principal
-
 
 if __name__ == "__main__":
     console.print("[bold cyan]Seleccione el archivo CSV desde el explorador...[/bold cyan]")
